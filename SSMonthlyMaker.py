@@ -727,15 +727,30 @@ def questAccepted(data):
         
     namePs = []
     if '支援慈恩' in data[6]:
-        namePs.append('支援慈恩')
-        data[6].remove('支援慈恩')
+        namePs.append(data[6].pop(data[6].index('支援慈恩')))
         date = dateName(data[0], data[1], data[3], Cien=True)
     else:
         date = dateName(data[0], data[1], data[3])
     if '法紀教育' in data[6]:
         namePs.append('法紀教育')
     namePs = '、'.join(namePs)
-    
+
+    misNote = [] # mistaken notation
+    for i in data[6]:
+        if re.match(r'(\d)番異常', i):
+            errNum = re.match(r'(\d)番異常', i).group(1)
+            data[6].pop(data[6].index(re.match(r'(\d)番異常', i).group(0)))
+            misNote.append(errNum)
+    if len(misNote) = 0:
+        pass
+    elif len(misNote) = 1:
+        print(f'↑這張勤務表{errNum}番的輪休表註記不在範本裡，請額外給予關注。')
+    elif len(misNote) > 1:
+        misNoStr = misNote[0]
+        for i in range(1, len(misNote)):
+            misNoStr = f'{misNoStr}、{misNote[i]}'
+        print(f'↑這張勤務表{misNoStr}番的輪休表註記不在範本裡，請額外給予關注。')
+            
     tree = dataManager(tree, data, date)
     os.chdir(word)
     xmlSetup(tree)
@@ -855,6 +870,7 @@ def dataExplainer(data):
                 data[day].append('支援慈恩')
             else:
                 jar['stuff'].append(str(i))
+                data[day].append(f'{i}番異常')
         for j in range(6, 10): # SMS
             try:
                 if isinstance(int(data[day][j]), int):
@@ -868,7 +884,8 @@ def dataExplainer(data):
                     if '法紀教育' not in data[day]:
                         data[day].append('法紀教育')
                 else:
-                    continue
+                    jar['tl'].append(str(j-1))
+                    data[day].append(f'{i}番異常')
         for k in range(len(SMSOrder.keys())):
             jar['SMS'].append(SMSOrder[k+1])
         a.append([])
