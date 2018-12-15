@@ -48,7 +48,7 @@ def findSS():
             print(i)
         print('搜尋完畢。')
     print('')
-    os.system('pause')
+    os.system('pause >nul | echo 按下任意鍵以關閉視窗...')
 
 if __name__ == '__main__':
     findSS()
