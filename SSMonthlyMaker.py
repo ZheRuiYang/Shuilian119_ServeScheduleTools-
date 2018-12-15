@@ -597,9 +597,9 @@ def numOrder(num):
     val = ''
     for i in range(len(num)):
         if i == len(num) - 1:
-            val = val + num[i]
+            val = f'{val}{num[i]}'
         else:
-            val = val + num[i] + ","
+            val = f'{val}{num[i]},'
     return val
 
 def dataManager(tree, data, date):
@@ -695,11 +695,13 @@ def dateName(day, stuff, SMS, Cien=None): # Cien = 慈恩
     # input yyymmdd, output yyymmdd(_+_)□
     d = re.compile(r"(\d\d\d)(\d\d)(\d\d)")
     wkDay = ["一", "二", "三", "四", "五", "六", "日"]
+    lenStuff = int((len(stuff)+1)/2)
+    lenSMS = int((len(SMS)+1)/2)
 
     if Cien:
-        number = '(' + str(int((len(stuff)+1)/2)+1) + '+' + str(int((len(SMS)+1)/2)) + ')'
+        number = f'({lenStuff+1}+{lenSMS})'
     else:
-        number = '(' + str(int((len(stuff)+1)/2)) + '+' + str(int((len(SMS)+1)/2)) + ')'
+        number = f'({lenStuff}+{lenSMS})'
 
     mo = d.search(day)
     year = 1911 + int(mo.group(1))
@@ -739,7 +741,7 @@ def questAccepted(data):
     for i in data[6]:
         if re.match(r'(\d)番異常', i):
             errNum = re.match(r'(\d)番異常', i).group(1)
-            data[6].pop(data[6].index(re.match(r'(\d)番異常', i).group(0)))
+            data[6].remove(re.match(r'(\d)番異常', i).group())
             misNote.append(errNum)
     if len(misNote) = 0:
         pass
@@ -786,7 +788,7 @@ def dataFetcher():
             for tc in wTrs[i].findall('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}tc'):
                 a = ''
                 for text in tc.itertext():
-                    a = a + text
+                    a = f'{a}{text}'
                 tr.append(a)
             train[i-1] = tr
     # make data list
@@ -798,17 +800,17 @@ def dataFetcher():
     year = str(mo.group(1))
     month = str(mo.group(2))
     if len(month) == 1:
-        month = '0' + month
+        month = f'0{month}'
     date = year + month
     # arrange leave schedule and order notes
     for i in range(len(col)):
         data[i+1] = []
         day = i+1
         if i < 9:
-            day = '0' + str(day)
+            day = f'0{day}'
         data[i+1].append(date + str(day))
         for j in range(7, 24, 2):
-            key = col[i] + str(j)
+            key = f'{col[i]}{j}'
             try :
                 data[i+1].append(cell[key])
             except KeyError:
@@ -816,14 +818,31 @@ def dataFetcher():
     # arrange trainning schedule
     for i in range(31):
         if train[i+1][3] != '':
-            data[i+1].append('16-18時' + train[i+1][3])
+            data[i+1].append(f'16-18時{train[i+1][3]}')
         if train[i+1][5] != '':
             data[i+1].append(train[i+1][5])
-    # compensatory leave notes(#1-D8, #2-D10, #3-D12, #4-D14)
+    # leave notes of stuff(#1-D8, #2-D10, #3-D12, #4-D14)
     for i in range(8, 15, 2):
-        pos = 'D' + str(i)
+        pos = f'D{i}'
         for match in re.finditer(r'(\d|\d\d)日補?(\(補?(\d|\d\d)/(\d|\d\d)\s?\w+\))', cell[pos]):
             data[int(match.group(1))].append(str(int(i/2-3)) + '番補休' + match.group(2))
+        for match in re.finditer(r'(\d|\d\d)日事假?(\(.*\))', cell[pos]):
+            data[int(match.group(1))].append(str(int(i/2-3)) + '番請事假' + match.group(2))
+        for match in re.finditer(r'(\d|\d\d)日公假?(\(.*\))', cell[pos]):
+            data[int(match.group(1))].append(str(int(i/2-3)) + '番請公假' + match.group(2))
+        for match in re.finditer(r'(\d|\d\d)日病假?(\(.*\))', cell[pos]):
+            data[int(match.group(1))].append(str(int(i/2-3)) + '番請病假' + match.group(2))
+    # leave notes of SMS(#1-D8, #2-D10, #3-D12, #4-D14)
+    for i in range(18, 25, 2):
+        pos = f'D{i}
+        for match in re.finditer(r'(\d|\d\d)日補?(\(補?(\d|\d\d)/(\d|\d\d)\s?\w+\))', cell[pos]):
+            data[int(match.group(1))].append(str(int(i/2-4)) + '番補休' + match.group(2))
+        for match in re.finditer(r'(\d|\d\d)日事假?(\(.*\))', cell[pos]):
+            data[int(match.group(1))].append(str(int(i/2-4)) + '番請事假' + match.group(2))
+        for match in re.finditer(r'(\d|\d\d)日公假?(\(.*\))', cell[pos]):
+            data[int(match.group(1))].append(str(int(i/2-4)) + '番請公假' + match.group(2))
+        for match in re.finditer(r'(\d|\d\d)日病假?(\(.*\))', cell[pos]):
+            data[int(match.group(1))].append(str(int(i/2-4)) + '番請病假' + match.group(2))
     # final decoration
     if int(month) == 2:
         for i in range(29, 32):
@@ -847,9 +866,6 @@ def dataExplainer(data):
             elif data[day][i] == '特' or data[day][i] == '◎':
                 data[day].append(f'{i}番特休')
                 jar['tl'].append(str(i))
-            elif data[day][i] == '常訓':
-                jar['ol'].append(str(i))
-                data[day].append(f'{i}番08-18時常訓；18-08時外宿')
             elif data[day][i] == '補':
                 jar['cl'].append(str(i))
             elif data[day][i] == '休':
@@ -878,14 +894,24 @@ def dataExplainer(data):
             except ValueError:
                 if data[day][j] == '○':
                     jar['tl'].append(str(j-1))
-                elif re.match(r'(法紀|教育)(\d)', data[day][j]):
-                    SMSOrder[int(re.match(r'(法紀|教育)(\d)', data[day][j]).group(2))] = str(j-1)
+                elif re.match(r'(法紀|教育|法)(\d)', data[day][j]):
+                    SMSOrder[int(re.match(r'(法紀|教育|法)(\d)', data[day][j]).group(2))] = str(j-1)
                     data[day].append(f'{j-1}番08-12時法紀教育')
                     if '法紀教育' not in data[day]:
                         data[day].append('法紀教育')
+                elif data[day][j] == '喪':
+                    jar['pl'].append(str(j-1))
+                    data[day].append(f'{j-1}番請喪假')
+                elif data[day][j] == '公':
+                    jar['bl'].append(str(j-1))
+                elif data[day][j] == '事' or data[day][j] == '病':
+                    jar['pl'].append(str(j-1))
+                elif data[day][j] == '': # 因應退役後的班表為空字串
+                    pass
+                elif data[day][j] == '退役' or ata[day][j] == '退':
+                    data[day].append(f'{j-1}番退役')
                 else:
-                    jar['tl'].append(str(j-1))
-                    data[day].append(f'{i}番異常')
+                    data[day].append(f'{j-1}番異常')
         for k in range(len(SMSOrder.keys())):
             jar['SMS'].append(SMSOrder[k+1])
         a.append([])
@@ -967,7 +993,7 @@ def dataExplainer(data):
             ft12 = '12車(3)'
         elif '4' not in carKeeper:
             ft12 = '12車(2)'
-        keepers = ft11 + '、' + ft12 + '、' + ambu
+        keepers = f'{ft11}、{ft12}、{ambu}'
         a[day-1].append(keepers) # now: ['date', 'stuff', 'night', 'SMS', '輪休', '外宿', '補休', '休假', '公差假', '事病假', '出動梯次', '車輛保養']
         # 合併相同事由、番號不同的備註
         psInd = 10
@@ -1006,7 +1032,7 @@ if __name__ == '__main__':
     with open(r'C:\Users\Sleepylizard\Desktop\serveScheduleMaker\metadata.txt', 'ab') as meta: # path... ################################################
         for i in dataExplainer(dataFetcher()):
             print(f'製作{i[:3]}年{i[3:5]}月{i[5:7]}日的勤務表......', end='')
-            j = codecs.encode(i + '\r\n', encoding='ANSI') # build-in windows line-breaker is "\r\n"
+            j = codecs.encode(i + '\r\n', encoding='ANSI') # windows line-breaker is "\r\n"
             meta.write(j)
             i = i.replace('\n', '')
             i = i.split('; ')
@@ -1015,4 +1041,4 @@ if __name__ == '__main__':
             questAccepted(i)
             print('完成！')
     print('本月份勤務表全數製作完成！請務必再次確認。')
-    os.system('pause')
+    os.system('pause >nul | echo 按下任何鍵以關閉程式...')
