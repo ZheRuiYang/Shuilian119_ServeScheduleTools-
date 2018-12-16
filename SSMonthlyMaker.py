@@ -598,6 +598,81 @@ def allDayTrain(tbl, par): # 08-18 train, and 18-08(the next day) live outside
             tbl[i-1][6].append(j)
     return tbl
 
+def HDTrain2Stuff(tbl, stuff, par, night):
+    # 當日主管參與半日訓練
+    if par == stuff[0]:
+        for i in range(2, 12):
+            tbl[i-1][6].append(par)
+            tbl[i-1][2].append(stuff[1])
+        for i in range(12, 14):
+            tbl[i-1][1].append(par)
+            tbl[i-1][2].append(stuff[1])
+        for i in range(14, 16):
+            tbl[i-1][7].append(par)
+            tbl[i-1][2].append(stuff[1])
+    # 不是當日主管參與訓練
+    else:
+        for i in range(2, 12):
+            tbl[i-1][6].append(par)
+            tbl[i-1][2].append(stuff[0])
+        for i in range(12, 14):
+            tbl[i-1][1].append(stuff[0])
+            tbl[i-1][2].append(par)
+        for i in range(14, 16):
+            tbl[i-1][7].append(stuff[0])
+            tbl[i-1][2].append(par)
+    # 值宿
+    if night == stuff[0]:
+        notNight = stuff[1]
+    else:
+        notNight = stuff[0]
+    for i in range(16, 26):
+        tbl[i-1][1].append(night)
+        tbl[i-1][2].append(notNight)
+    return tbl
+        
+def HDTrain3Stuff(tbl, stuff, par, night):
+    st = list(stuff)
+    st.remove(par)
+    # 當日主管f1
+    for i in range(2, 4):
+        tbl[i-1][1].append(st[0])
+    for i in range(4, 6):
+        tbl[i-1][7].append(st[0])
+    for i in range(6, 10):
+        tbl[i-1][2].append(st[0])
+    for i in range(10, 12):
+        tbl[i-1][6].append(st[0])
+    for i in range(12, 14):
+        tbl[i-1][1].append(st[0])
+    for i in range(14, 16):
+        tbl[i-1][7].append(st[0])
+    # 非值宿f2
+    for i in range(2, 6):
+        tbl[i-1][2].append(st[1])
+    for i in range(6, 10):
+        tbl[i-1][7].append(st[1])
+    for i in range(10, 12):
+        tbl[i-1][2].append(st[1])
+    for i in range(12, 16):
+        tbl[i-1][7].append(st[1])
+    for i in range(16, 26):
+        tbl[i-1][2].append(st[1])
+    # 上午參與半日訓練人員
+    for i in range(2, 12):
+        tbl[i-1][6].append(par)
+    for i in range(12, 16):
+        tbl[i-1][2].append(par)
+    # 值宿與非值宿
+    if night == par:
+        notNight = st[0]
+    else:
+        notNight = par
+    for i in range(16, 26):
+        tbl[i-1][1].append(night)
+        tbl[i-1][7].append(notNight)
+    return tbl
+
 def numOrder(num):
     num.sort()
     val = ''
@@ -621,14 +696,25 @@ def dataManager(tree, data, date):
         for j in range(9):
             table3[i].append([])
     if len(stuff) == 2:
-        if len(SMS) == 0:
+        if '半天訓練' in data[6]:
+            for i in data[6]:
+                if re.match(r'(\d)番08-18時(火調|安檢)講習', i):
+                    participant = re.match(r'(\d)番08-18時(火調|安檢)講習', i).group(1)
+            HDTrain2Stuff(table3, stuff, participant, night)
+        elif len(SMS) == 0:
             table3 = f2s0(table3, stuff, night)
         elif len(SMS) == 1:
             table3 = f2s1(table3, stuff, night, SMS)
         else:
             table3 = twoStuff(table3, stuff, night)
     elif len(stuff) == 3:
-        if len(SMS) == 0:
+        if '半天訓練' in data[6]:
+            for i in data[6]:
+                if re.match(r'(\d)番08-18時(火調|安檢)講習', i):
+                    participant = re.match(r'(\d)番08-18時(火調|安檢)講習', i).group(1)
+            HDTrain3Stuff(table3, stuff, participant, night)
+            data[6].remove('半天訓練')
+        elif len(SMS) == 0:
             table3 = f3s0(table3, stuff)
         elif len(SMS) == 1:
             table3 = f3s1(table3, stuff, SMS)
@@ -667,6 +753,19 @@ def dataManager(tree, data, date):
         table3[10][7] = table3[10][6]
         table3[9][6] = ''
         table3[10][6] = ''
+    # 只有兩警消上班，而其中一位要去半天訓練的時候
+    if '半天訓練' in data[6] and len(stuff) == 2:
+        data[6].remove('半天訓練')
+        if len(SMS) > 2:
+            table3[1][1].append(table3[1][7].pop(len(table3[1][7])-1))
+            table3[2][1].append(table3[2][7].pop(len(table3[2][7])-1))
+        elif len(SMS) == 2: # 唯有役男也只有兩人的時候備勤格才會空掉
+            table3[1][1].append(table3[1][2].pop(len(table3[1][2])-1))
+            table3[2][1].append(table3[2][2].pop(len(table3[2][2])-1))
+            table3[1][2].append(table3[1][7].pop(len(table3[1][7])-1))
+            table3[2][2].append(table3[2][7].pop(len(table3[2][7])-1))
+        else:
+            print('↑這張勤務表不在範本裡，請額外關注它。')
     # 寫入xml
     for i in range(25):
         for j in range(9):
@@ -689,14 +788,14 @@ def dataManager(tree, data, date):
 def archive(date, source, ps):
     # archive files under a directory into a (date).docx file under CWD
     if ps == '':
-        with zipfile.ZipFile(date + '.docx', 'w', zipfile.ZIP_DEFLATED, True, 9) as docu:
+        with zipfile.ZipFile(f'{date}.docx', 'w', zipfile.ZIP_DEFLATED, True, 9) as docu:
             rlen = len(os.path.relpath(source)) + 1
             for root, dirs, files in os.walk(source):
                 for file in files:
                     file = os.path.join(root, file)
                     docu.write(file, os.path.relpath(file)[rlen:])
     else:
-        with zipfile.ZipFile(date + '－' + ps + '.docx', 'w', zipfile.ZIP_DEFLATED, True, 9) as docu:
+        with zipfile.ZipFile(f'{date}－{ps}.docx', 'w', zipfile.ZIP_DEFLATED, True, 9) as docu:
             rlen = len(os.path.relpath(source)) + 1
             for root, dirs, files in os.walk(source):
                 for file in files:
@@ -749,8 +848,15 @@ def questAccepted(data):
         namePs.append('法紀教育')
     if '常訓' in data[6]:
         namePs.append('常訓')
+        data[6].remove('常訓')
     if 'T2訓' in data[6]:
         namePs.append('T2訓')
+        data[6].remove('T2訓')
+    for i in data[6]:
+        if re.match(r'(火調|安檢)講習', i):
+            namePs.append(re.match(r'(火調|安檢)講習', i).group())
+            data[6].remove(re.match(r'(火調|安檢)講習', i).group())
+            data[6].append('半天訓練')
     namePs = '、'.join(namePs)
 
     misNote = [] # mistaken notation
@@ -877,8 +983,8 @@ def dataFetcher():
 def dataExplainer(data):
     a = [] # first data reassemble target: ['date', 'stuff', 'night', 'SMS', '輪休', '外宿', '補休', '休假', '公差假', '事病假', 'PS', ...]
     for day in data.keys():
-        jar = {'stuff': [], 'night': [], 'SMS': [], 'tl': [], 'ol': [], 'cl': [], 'le': [], 'bl': [], 'pl': [], 'par':[]}
-        # tl = 輪休, ol = 外宿, cl = 補休, le = 休假, bl = 公差假, pl = 事病假, par = 全天訓練參與人員
+        jar = {'stuff': [], 'night': [], 'SMS': [], 'tl': [], 'ol': [], 'cl': [], 'le': [], 'bl': [], 'pl': [], 'allDay':[]}
+        # tl = 輪休, ol = 外宿, cl = 補休, le = 休假, bl = 公差假, pl = 事病假, allDay = 全天訓練參與人員
         SMSOrder = {} # {順位(int): 番號(str)}
         for i in range(1,5): # stuff
             if data[day][i] == '○':
@@ -910,21 +1016,28 @@ def dataExplainer(data):
                 data[day].append('支援慈恩')
             elif re.match(r'(常訓|T2訓|T2|常)', data[day][i]):
                 jar['ol'].append(str(i))
-                jar['par'].append(str(i))
+                jar['allDay'].append(str(i))
                 outLeave = re.match(r'(常訓|T2訓|T2|常)', data[day][i]).group()
                 if not re.search(r'訓', outLeave):
                     outLeave = f'{outLeave}訓'
                 data[day].append(f'{i}番08-18時{outLeave}；18-08時外宿')
-                if not outLeave in data[day]:
+                if not outLeave in data[day][10:]:
                     data[day].append(outLeave)
+            elif re.match(r'(安檢|火調)', data[day][i]):
+                edu = re.match(r'(安檢|火調)', data[day][i]).group()
+                jar['stuff'].append(str(i))
+                if re.search(r'(宿|v|V)', data[day][i]):
+                    jar['night'].append(str(i))
+                data[day].append(f'{i}番08-18時{edu}講習')
+                data[day].append(f'{edu}講習')
             elif data[day][i] == '':
                 jar['stuff'].append(str(i))
             else:
                 data[day].append(f'{i}番異常')
-        if jar['par'] != []:
-            retrain = ''.join(jar['par'])
+        if jar['allDay'] != []:
+            retrain = ''.join(jar['allDay'])
             data[day].append(f'全天訓練{retrain}')
-        del jar['par'] # 我懶惰改後面的東西了。刪掉它還原回沒問題的狀態比較輕鬆...
+        del jar['allDay'] # 我懶惰改後面的東西了。刪掉它還原回沒問題的狀態比較輕鬆...
         for j in range(6, 10): # SMS
             try:
                 if isinstance(int(data[day][j]), int):
@@ -944,7 +1057,7 @@ def dataExplainer(data):
                     jar['bl'].append(str(j-1))
                 elif data[day][j] == '事' or data[day][j] == '病':
                     jar['pl'].append(str(j-1))
-                elif data[day][j] == '': # 因應退役後的班表為空字串
+                elif data[day][j] == '': # 因應退役後的班表為空字串(這行好像沒意義?)
                     pass
                 elif data[day][j] == '退役' or ata[day][j] == '退':
                     data[day].append(f'{j-1}番退役')
