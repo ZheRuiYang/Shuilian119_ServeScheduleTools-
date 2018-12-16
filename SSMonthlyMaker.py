@@ -592,6 +592,12 @@ def f3s0(tbl, stuff, night):
         tbl[i-1][2].append(night)
     return tbl
 
+def allDayTrain(tbl, par): # 08-18 train, and 18-08(the next day) live outside
+    for i in range(2, 12):
+        for j in par:
+            tbl[i-1][6].append(j)
+    return tbl
+
 def numOrder(num):
     num.sort()
     val = ''
@@ -632,13 +638,19 @@ def dataManager(tree, data, date):
         table3 = twoSMS(table3, SMS)
     if len(SMS) == 3:
         table3 = threeSMS(table3, SMS)
+    # 全天訓練(外宿)
+    for i in data[6]:
+        if re.match(r'全天訓練(\d+)', i):
+            participants = list(re.match(r'全天訓練(\d+)', i).group(1))
+            table3 = allDayTrain(table3, participants)
+            data[6].remove(re.match(r'全天訓練(\d+)', i).group())
     # 法紀教育
     if len(SMS) == 4 and '法紀教育' in data[6]:
         table3 = fourSMSEdu(table3, SMS)
         data[6].remove('法紀教育')
     elif len(SMS) == 4:
         table3 = fourSMS(table3, SMS)
-    #防溺與水查
+    # 防溺與水查
     for i in data[6]:
         if re.match('防溺', i):
             tree = drwningProof(tree)
@@ -721,7 +733,7 @@ def questAccepted(data):
     except FileExistsError:
         os.chdir(SS)
         
-    with zipfile.ZipFile(r"C:\Users\Sleepylizard\Desktop\serveScheduleMaker\SSTemplate.docx") as docu: # path here is for temporary.###################################
+    with zipfile.ZipFile(r"C:\Users\Sleepylizard\Desktop\SSMaker\SSTemplate.docx") as docu: # path here is for temporary.###################################
         tree = ET.parse(docu.open('word/document.xml'))
         os.mkdir("temp")
         docu.extractall(temp)
@@ -735,6 +747,10 @@ def questAccepted(data):
         date = dateName(data[0], data[1], data[3])
     if '法紀教育' in data[6]:
         namePs.append('法紀教育')
+    if '常訓' in data[6]:
+        namePs.append('常訓')
+    if 'T2訓' in data[6]:
+        namePs.append('T2訓')
     namePs = '、'.join(namePs)
 
     misNote = [] # mistaken notation
@@ -743,9 +759,9 @@ def questAccepted(data):
             errNum = re.match(r'(\d)番異常', i).group(1)
             data[6].remove(re.match(r'(\d)番異常', i).group())
             misNote.append(errNum)
-    if len(misNote) = 0:
+    if len(misNote) == 0:
         pass
-    elif len(misNote) = 1:
+    elif len(misNote) == 1:
         print(f'↑這張勤務表{errNum}番的輪休表註記不在範本裡，請額外給予關注。')
     elif len(misNote) > 1:
         misNoStr = misNote[0]
@@ -779,6 +795,13 @@ def dataFetcher():
                         cell[elems[i+1].attrib['r']] = labeledStrings[int(elems[i].text)]
                 else: # need not to translate
                     cell[elems[i+1].attrib['r']] = str(elems[i].text)
+        for i in range(8, 27, 2): # 預防備註是空的導致後續的KeyError
+            try:
+                cell[f'D{i}']
+            except KeyError:
+                cell[f'D{i}'] = ''
+        del cell['D16']
+                
     # from .docx(訓練預定表)
     with zipfile.ZipFile(r'C:\Users\Sleepylizard\Desktop\水璉分隊訓練預定表107.12.docx') as docx: # path here is for temporily###################################
         wTrs = [elem for event, elem in ET.iterparse(docx.open('word/document.xml')) if elem.tag == '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}tr']
@@ -834,7 +857,7 @@ def dataFetcher():
             data[int(match.group(1))].append(str(int(i/2-3)) + '番請病假' + match.group(2))
     # leave notes of SMS(#1-D8, #2-D10, #3-D12, #4-D14)
     for i in range(18, 25, 2):
-        pos = f'D{i}
+        pos = f'D{i}'
         for match in re.finditer(r'(\d|\d\d)日補?(\(補?(\d|\d\d)/(\d|\d\d)\s?\w+\))', cell[pos]):
             data[int(match.group(1))].append(str(int(i/2-4)) + '番補休' + match.group(2))
         for match in re.finditer(r'(\d|\d\d)日事假?(\(.*\))', cell[pos]):
@@ -854,7 +877,8 @@ def dataFetcher():
 def dataExplainer(data):
     a = [] # first data reassemble target: ['date', 'stuff', 'night', 'SMS', '輪休', '外宿', '補休', '休假', '公差假', '事病假', 'PS', ...]
     for day in data.keys():
-        jar = {'stuff': [], 'night': [], 'SMS': [], 'tl': [], 'ol': [], 'cl': [], 'le': [], 'bl': [], 'pl': []} # tl = 輪休, ol = 外宿, cl = 補休, le = 休假, bl = 公差假, pl = 事病假
+        jar = {'stuff': [], 'night': [], 'SMS': [], 'tl': [], 'ol': [], 'cl': [], 'le': [], 'bl': [], 'pl': [], 'par':[]}
+        # tl = 輪休, ol = 外宿, cl = 補休, le = 休假, bl = 公差假, pl = 事病假, par = 全天訓練參與人員
         SMSOrder = {} # {順位(int): 番號(str)}
         for i in range(1,5): # stuff
             if data[day][i] == '○':
@@ -884,9 +908,23 @@ def dataExplainer(data):
             elif data[day][i] == '慈':
                 data[day].append(f'{i}番支援慈恩勤務')
                 data[day].append('支援慈恩')
-            else:
+            elif re.match(r'(常訓|T2訓|T2|常)', data[day][i]):
+                jar['ol'].append(str(i))
+                jar['par'].append(str(i))
+                outLeave = re.match(r'(常訓|T2訓|T2|常)', data[day][i]).group()
+                if not re.search(r'訓', outLeave):
+                    outLeave = f'{outLeave}訓'
+                data[day].append(f'{i}番08-18時{outLeave}；18-08時外宿')
+                if not outLeave in data[day]:
+                    data[day].append(outLeave)
+            elif data[day][i] == '':
                 jar['stuff'].append(str(i))
+            else:
                 data[day].append(f'{i}番異常')
+        if jar['par'] != []:
+            retrain = ''.join(jar['par'])
+            data[day].append(f'全天訓練{retrain}')
+        del jar['par'] # 我懶惰改後面的東西了。刪掉它還原回沒問題的狀態比較輕鬆...
         for j in range(6, 10): # SMS
             try:
                 if isinstance(int(data[day][j]), int):
@@ -948,7 +986,7 @@ def dataExplainer(data):
             yStuff = a[day-2][1]
         except KeyError:
             try:
-                with open(r'C:\Users\Sleepylizard\Desktop\serveScheduleMaker\metadata.txt') as ref: # path...#############################################
+                with open(r'C:\Users\Sleepylizard\Desktop\SSMaker\metadata.txt') as ref: # path...#############################################
                     while True:
                         meta = ref.readline()
                         if meta:
@@ -1029,7 +1067,7 @@ def dataExplainer(data):
     return output
 
 if __name__ == '__main__':
-    with open(r'C:\Users\Sleepylizard\Desktop\serveScheduleMaker\metadata.txt', 'ab') as meta: # path... ################################################
+    with open(r'C:\Users\Sleepylizard\Desktop\SSMaker\metadata.txt', 'ab') as meta: # path... ################################################
         for i in dataExplainer(dataFetcher()):
             print(f'製作{i[:3]}年{i[3:5]}月{i[5:7]}日的勤務表......', end='')
             j = codecs.encode(i + '\r\n', encoding='ANSI') # windows line-breaker is "\r\n"
