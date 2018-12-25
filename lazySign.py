@@ -27,7 +27,7 @@ def interface(window=True, _schedule=None):
                         while True:
                             _newmember = []
                             _newmember.append(input('輸入人員代號：(如不想新增，直接enter以退回上一層)：'))
-                            if _newmember[0] = '':
+                            if _newmember[0] == '':
                                 break
                             _newmember.append(input('輸入交接班作業的下拉選單要按幾次下鍵才能正確指定：'))
                             _newmember.append(input('輸入登入密碼：(注意：此程式會永久記錄此密碼直到手動刪除！)'))
@@ -63,7 +63,7 @@ def interface(window=True, _schedule=None):
                                         print('資料庫中沒有這個人員代號。')
                                     else:
                                         delCheck = input(f'確認刪除{_useless}？ (輸入對應的登入密碼以確認刪除；輸入「n」取消。)')  
-                                        elif delCheck == id[_useless]:
+                                        if delCheck == id[_useless]:
                                             del id[_useless]
                                             del id[f'{_useless}_KeyPressTimes']
                                             os.system('pause >nul | echo 成功刪除{_useless}！按下任何鍵以繼續。')
