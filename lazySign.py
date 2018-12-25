@@ -14,12 +14,12 @@ def interface(window=True, _schedule=None):
             preOrder(i)
     except:
         _dataBox = []
+        print('┌──────────────┐ 　 パ..パ')
+        print('│歡迎使用值班台登入排程小幫手│　（ ° ∀ ° ）')
+        print('└──────────────┘＿（＿b /￣￣￣￣￣/＿')
+        print('')
         while True:
             if window: # open a window to collecting imformations
-                print('┌──────────────┐ 　 パ..パ')
-                print('│歡迎使用值班台登入排程小幫手│　（ ° ∀ ° ）')
-                print('└──────────────┘＿（＿b /￣￣￣￣￣/＿')
-                print('')
                 _text = input('輸入人員代號及上值班台時間；直接按enter以跳過；輸入「member」以進入新增/刪除人員模式： (e.g. ○○○,10,20) ')
                 if _text == 'member':
                     _switch = input('輸入「new」以新增人員資料；輸入「del」以刪除人員資料；輸入其餘任何鍵以回到上一層。')
@@ -39,9 +39,14 @@ def interface(window=True, _schedule=None):
                             else:
                                 print(f'您所設定的人員代號為{_newmember[0]}；交接班作業下拉選單的下鍵指定次數為{_newmember[1]}；登入密碼為{_newmember[2]}。')
                                 _memberDataCheck = input('確認無誤後輸入「ok」將資料存入電腦；輸入其餘任何鍵重新輸入：')
+                                if _newmember[2][0].upper():
+                                    _newmember.append(f'{_newmember[2][0].lower()}{_newmember[2][1:]}')
+                                else:
+                                    _newmember.append(f'{_newmember[2][0].upper()}{_newmember[2][1:]}')
                                 if re.match(r'(ok|OK|Ok|oK|okey|Okey|okay|Okay|okey-doke)', _memberDataCheck):
                                     with shelve.open(picPath + '\PID') as id:
                                         id[f'{_newmember[0]}'] = _newmember[2]
+                                        id [f'_{_newmember[0]}'] = _newmember[3]
                                         id[f'{_newmember[0]}_KeyPressTimes'] = _newmember[1]
                                     os.system('pause >nul | echo 資料儲存完成，按下任何鍵以回上一層。')
                                     break
@@ -73,10 +78,11 @@ def interface(window=True, _schedule=None):
                                             print('密碼錯誤，請再次確認。')
                     else:
                         continue
-                elif re.match(r'(.*)(,(\d|\d\d))+'):
+                elif re.match(r'(.*)(,(\d|\d\d))+', _text):
                     _dataBox.append(_text)
                 else:
                     print(f'你輸入的字串是「{_text}」。該字串格式有誤，請重新輸入。')
+                    print('')
                     continue
                 _pause = input('輸入完成？ (輸入「y」以檢查輸入的資料；輸入其餘任意鍵以繼續輸入。)')
                 if _pause == 'y':
@@ -93,7 +99,7 @@ def interface(window=True, _schedule=None):
                             _d = input('輸入人員代號以刪除該行資料：(e.g. 欲刪除「abc,08,18」這行請輸入「abc」) ')
                             for i in _dataBox:
                                 try:
-                                    del _dataBox[re.match(f'{_d}.*').group()]
+                                    del _dataBox[re.match(f'{_d}.*', i).group()]
                                 except:
                                     continue
                         else:
@@ -139,7 +145,7 @@ def signIn(name):
             break
         else:
             continue
-    with shelve.open(picPath + '\PID') as id: ###################################################################
+    with shelve.open(picPath + '\PID') as id:
         pyautogui.press('down', presses=int(id[f'{name}_KeyPressTimes']), interval=0.2)
         pyautogui.typewrite('\t')
         pyautogui.typewrite(id[f'{name}'], interval=0.1)
