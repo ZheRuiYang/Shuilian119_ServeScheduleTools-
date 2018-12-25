@@ -31,27 +31,36 @@ def interface(window=True, _schedule=None):
                                 break
                             _newmember.append(input('輸入交接班作業的下拉選單要按幾次下鍵才能正確指定：'))
                             _newmember.append(input('輸入登入密碼：(注意：此程式會永久記錄此密碼直到手動刪除！)'))
-                            if not isinstance(_newmember[1], int) or not re.match(r'^[A-Za-z](\d){9}$', _newmember[2]):
-                                if not isinstance(_newmember[1], int):
-                                    print('交接班作業的下拉選單部分必須要是數字，請全部重新輸入。')
-                                else:
-                                    print(f'您輸入的登入密碼「{_newmember[2]}」不符合格式，請全部重新輸入。')
+                            if _newmember[2][0].upper():
+                                _newmember.append(f'{_newmember[2][0].lower()}{_newmember[2][1:]}')
                             else:
-                                print(f'您所設定的人員代號為{_newmember[0]}；交接班作業下拉選單的下鍵指定次數為{_newmember[1]}；登入密碼為{_newmember[2]}。')
-                                _memberDataCheck = input('確認無誤後輸入「ok」將資料存入電腦；輸入其餘任何鍵重新輸入：')
-                                if _newmember[2][0].upper():
-                                    _newmember.append(f'{_newmember[2][0].lower()}{_newmember[2][1:]}')
+                                _newmember.append(f'{_newmember[2][0].upper()}{_newmember[2][1:]}')
+                            with shelve.open(picPath + '\PID') as id:
+                                if not isinstance(_newmember[1], int) or not re.match(r'^[A-Za-z](\d){9}$', _newmember[2]):
+                                    if not isinstance(_newmember[1], int):
+                                        print('交接班作業的下拉選單部分必須要是數字，請全部重新輸入。')
+                                    else:
+                                        print(f'您輸入的登入密碼「{_newmember[2]}」不符合格式，請全部重新輸入。')
+                                elif _newmember[0] in id:
+                                    print(f'您所設定的人員代號為{_newmember[0]}，資料庫內部已有這筆資料。')
                                 else:
-                                    _newmember.append(f'{_newmember[2][0].upper()}{_newmember[2][1:]}')
-                                if re.match(r'(ok|OK|Ok|oK|okey|Okey|okay|Okay|okey-doke)', _memberDataCheck):
-                                    with shelve.open(picPath + '\PID') as id:
+                                    print(f'您所設定的人員代號為{_newmember[0]}；交接班作業下拉選單的下鍵指定次數為{_newmember[1]}；登入密碼為{_newmember[2]}。')
+                                    if _newmember[0] in id:
+                                        print('')
+                                        print('※※ 資料庫內部已有這筆資料 ※※')
+                                        print('')
+                                        _parad = input('輸入「ok」以覆蓋資料庫內部資料；其餘任何鍵以重新輸入資料。')
+                                        if not re.match(r'(ok|OK|Ok|oK)', _parad):
+                                            continue
+                                    _memberDataCheck = input('確認無誤後輸入「ok」將資料存入電腦；輸入其餘任何鍵重新輸入：')                                
+                                    if re.match(r'(ok|OK|Ok|oK|okey|Okey|okay|Okay|okey-doke)', _memberDataCheck):
                                         id[f'{_newmember[0]}'] = _newmember[2]
                                         id [f'_{_newmember[0]}'] = _newmember[3]
                                         id[f'{_newmember[0]}_KeyPressTimes'] = _newmember[1]
-                                    os.system('pause >nul | echo 資料儲存完成，按下任何鍵以回上一層。')
-                                    break
-                                else:
-                                    continue
+                                        os.system('pause >nul | echo 資料儲存完成，按下任何鍵以回上一層。')
+                                        break
+                                    else:
+                                        continue
                     elif _switch == 'del':
                         while True:
                             _useless = input('輸入要刪除的人員代號以刪除該筆資料；輸入「?」以閱覽所有的人員代號；輸入「q」離開刪除模式：')
