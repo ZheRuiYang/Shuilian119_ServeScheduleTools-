@@ -765,7 +765,7 @@ def dataManager(tree, data, date):
             table3[1][2].append(table3[1][7].pop(len(table3[1][7])-1))
             table3[2][2].append(table3[2][7].pop(len(table3[2][7])-1))
         else:
-            print('↑這張勤務表不在範本裡，請額外關注它。')
+            print('←這張勤務表不在範本裡，請額外關注它。')
     # 寫入xml
     for i in range(25):
         for j in range(9):
@@ -852,6 +852,9 @@ def questAccepted(data):
     if 'T2訓' in data[6]:
         namePs.append('T2訓')
         data[6].remove('T2訓')
+    if '水訓' in data[6]:
+        namePs.append('水訓')
+        data[6].remove('水訓')
     for i in data[6]:
         if re.match(r'(火調|安檢)講習', i):
             namePs.append(re.match(r'(火調|安檢)講習', i).group())
@@ -868,12 +871,12 @@ def questAccepted(data):
     if len(misNote) == 0:
         pass
     elif len(misNote) == 1:
-        print(f'↑這張勤務表{errNum}番的輪休表註記不在範本裡，請額外給予關注。')
+        print(f'←這張勤務表{errNum}番的輪休表註記不在範本裡，請額外給予關注。')
     elif len(misNote) > 1:
         misNoStr = misNote[0]
         for i in range(1, len(misNote)):
             misNoStr = f'{misNoStr}、{misNote[i]}'
-        print(f'↑這張勤務表{misNoStr}番的輪休表註記不在範本裡，請額外給予關注。')
+        print(f'←這張勤務表{misNoStr}番的輪休表註記不在範本裡，請額外給予關注。')
             
     tree = dataManager(tree, data, date)
     os.chdir(word)
@@ -884,7 +887,7 @@ def questAccepted(data):
 
 def dataFetcher():
     # from .xlsx(輪休預定表)
-    with zipfile.ZipFile(r'C:\Users\Sleepylizard\Desktop\輪休預定表107.12(4+4).xlsx') as xlsx: # path here is for temporily########################################
+    with zipfile.ZipFile(r'C:\Users\Sleepylizard\Desktop\輪休預定表108.01(4+4).xlsx') as xlsx: # path here is for temporily########################################
         si = [ele for eve, ele in ET.iterparse(xlsx.open('xl/sharedStrings.xml')) if ele.tag == '{http://schemas.openxmlformats.org/spreadsheetml/2006/main}si']
         labeledStrings = {} # {label_number:string}
         for i in range(len(si)):
@@ -909,7 +912,7 @@ def dataFetcher():
         del cell['D16']
                 
     # from .docx(訓練預定表)
-    with zipfile.ZipFile(r'C:\Users\Sleepylizard\Desktop\水璉分隊訓練預定表107.12.docx') as docx: # path here is for temporily###################################
+    with zipfile.ZipFile(r'C:\Users\Sleepylizard\Desktop\水璉分隊訓練預定表108.01.docx') as docx: # path here is for temporily###################################
         wTrs = [elem for event, elem in ET.iterparse(docx.open('word/document.xml')) if elem.tag == '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}tr']
         train = {} # {日期(1~31):['日期', '星期', '時段', '科目', '地點', '備註']}
         for i in range(2, len(wTrs)):
@@ -924,7 +927,7 @@ def dataFetcher():
     col = ['D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'AA', 'AB', 'AC', 'AD', 'AE', 'AF', 'AG', 'AH']
     data = {} # {day:[date, #1, #2, #3, #4, '', #5, #6, #7, #8, trainningSubject, PS, PS, PS, ...]}
     # make date string
-    dayReg = re.compile(r'.*(\d\d\d).*(\d[1,2]).*')
+    dayReg = re.compile(r'.*(\d\d\d).*(\d{1,2}).*')
     mo = dayReg.search(cell['A1'])
     year = str(mo.group(1))
     month = str(mo.group(2))
@@ -953,7 +956,7 @@ def dataFetcher():
     # leave notes of stuff(#1-D8, #2-D10, #3-D12, #4-D14)
     for i in range(8, 15, 2):
         pos = f'D{i}'
-        for match in re.finditer(r'(\d|\d\d)日補?(\(補?(\d|\d\d)/(\d|\d\d)\s?\w+\))', cell[pos]):
+        for match in re.finditer(r'(\d|\d\d)日補?(\(補?(\d|\d\d)/(\d|\d\d)\s?\w+(-|－)?\w+\))', cell[pos]):
             data[int(match.group(1))].append(str(int(i/2-3)) + '番補休' + match.group(2))
         for match in re.finditer(r'(\d|\d\d)日事假?(\(.*\))', cell[pos]):
             data[int(match.group(1))].append(str(int(i/2-3)) + '番請事假' + match.group(2))
@@ -964,7 +967,7 @@ def dataFetcher():
     # leave notes of SMS(#1-D8, #2-D10, #3-D12, #4-D14)
     for i in range(18, 25, 2):
         pos = f'D{i}'
-        for match in re.finditer(r'(\d|\d\d)日補?(\(補?(\d|\d\d)/(\d|\d\d)\s?\w+\))', cell[pos]):
+        for match in re.finditer(r'(\d|\d\d)日補?(\(補?(\d|\d\d)/(\d|\d\d)\s?\w+(-|－)?\w+\))', cell[pos]):
             data[int(match.group(1))].append(str(int(i/2-4)) + '番補休' + match.group(2))
         for match in re.finditer(r'(\d|\d\d)日事假?(\(.*\))', cell[pos]):
             data[int(match.group(1))].append(str(int(i/2-4)) + '番請事假' + match.group(2))
@@ -984,6 +987,7 @@ def dataExplainer(data):
     a = [] # first data reassemble target: ['date', 'stuff', 'night', 'SMS', '輪休', '外宿', '補休', '休假', '公差假', '事病假', 'PS', ...]
     for day in data.keys():
         jar = {'stuff': [], 'night': [], 'SMS': [], 'tl': [], 'ol': [], 'cl': [], 'le': [], 'bl': [], 'pl': [], 'allDay':[]}
+        olList = {'常訓': '', 'T2訓': 'EMT-2複訓', '水訓': '水域訓練'}
         # tl = 輪休, ol = 外宿, cl = 補休, le = 休假, bl = 公差假, pl = 事病假, allDay = 全天訓練參與人員
         SMSOrder = {} # {順位(int): 番號(str)}
         for i in range(1,5): # stuff
@@ -1014,13 +1018,14 @@ def dataExplainer(data):
             elif data[day][i] == '慈':
                 data[day].append(f'{i}番支援慈恩勤務')
                 data[day].append('支援慈恩')
-            elif re.match(r'(常訓|T2訓|T2|常)', data[day][i]):
+            elif re.match(r'(常訓|T2訓|T2|常|水訓|水)', data[day][i]):
                 jar['ol'].append(str(i))
                 jar['allDay'].append(str(i))
-                outLeave = re.match(r'(常訓|T2訓|T2|常)', data[day][i]).group()
+                outLeave = re.match(r'(常訓|T2訓|T2|常水訓|水)', data[day][i]).group()
                 if not re.search(r'訓', outLeave):
                     outLeave = f'{outLeave}訓'
-                data[day].append(f'{i}番08-18時{outLeave}；18-08時外宿')
+                trainName = olList[outLeave]
+                data[day].append(f'{i}番08-18時{trainName}；18-08時外宿')
                 if not outLeave in data[day][10:]:
                     data[day].append(outLeave)
             elif re.match(r'(安檢|火調)', data[day][i]):
@@ -1034,10 +1039,6 @@ def dataExplainer(data):
                 jar['stuff'].append(str(i))
             else:
                 data[day].append(f'{i}番異常')
-        if jar['allDay'] != []:
-            retrain = ''.join(jar['allDay'])
-            data[day].append(f'全天訓練{retrain}')
-        del jar['allDay'] # 我懶惰改後面的東西了。刪掉它還原回沒問題的狀態比較輕鬆...
         for j in range(6, 10): # SMS
             try:
                 if isinstance(int(data[day][j]), int):
@@ -1059,12 +1060,26 @@ def dataExplainer(data):
                     jar['pl'].append(str(j-1))
                 elif data[day][j] == '': # 因應退役後的班表為空字串(這行好像沒意義?)
                     pass
-                elif data[day][j] == '退役' or ata[day][j] == '退':
+                elif data[day][j] == '退役' or data[day][j] == '退':
                     data[day].append(f'{j-1}番退役')
+                elif re.match(r'(常訓|T2訓|T2|常|水訓|水)', data[day][j]):
+                    jar['ol'].append(str(j-1))
+                    jar['allDay'].append(str(j-1))
+                    outLeave = re.match(r'(常訓|T2訓|T2|常水訓|水)', data[day][j]).group()
+                    if not re.search(r'訓', outLeave):
+                        outLeave = f'{outLeave}訓'
+                        trainName = olList[outLeave]
+                        data[day].append(f'{i}番08-18時{trainName}；18-08時外宿')
+                    if not outLeave in data[day][10:]:
+                        data[day].append(outLeave)
                 else:
                     data[day].append(f'{j-1}番異常')
         for k in range(len(SMSOrder.keys())):
             jar['SMS'].append(SMSOrder[k+1])
+        if jar['allDay'] != []:
+            retrain = ''.join(jar['allDay'])
+            data[day].append(f'全天訓練{retrain}')
+        del jar['allDay'] # 我懶惰改後面的東西了。刪掉它還原回沒問題的狀態比較輕鬆...
         a.append([])
         a[day-1] = [','.join(jar[l]) for l in jar.keys()]
         a[day-1].insert(0, data[day][0])  # now: ['date', 'stuff', 'night', 'SMS', '輪休', '外宿', '補休', '休假', '公差假', '事病假']
