@@ -1110,43 +1110,35 @@ def dataExplainer(data):
             goString = f'{goString}        '
         a[day-1].append(goString)
         # 車輛保養
-        try:
-            yStuff = a[day-2][1]
-        except KeyError:
-            try:
-                with open(r'C:\Users\Sleepylizard\Desktop\SSMaker\metadata.txt') as ref: # path...#############################################
-                    while True:
-                        meta = ref.readline()
-                        if meta:
-                            yesterday = datetime.date(int(date[day][0][0:3]), int(date[day][0][3:5]), int(date[day][0][5:7])) + datetime.timedelta(-1)
-                            if yesterday.month < 10:
-                                mon = f'0{yesterday.month}'
-                            else:
-                                mon = str(yesterday.month)
-                            if yesterday.day < 10:
-                                daa = f'0{yesterday.day}'
-                            else:
-                                daa = str(yesterday.day)
-                            yesterday = f'{int(yesterday.year)-1911}{mon}{daa}'
-                            if int(meta[:7]) == yesterday:
-                                yStuff = meta.split('; ')[1]
+        with open(r'C:\Users\Sleepylizard\Desktop\SSMaker\metadata.txt') as ref: # path...#############################################
+            if a[day-1][0][5:] == '01':
+                while True:
+                    meta = ref.readline()
+                    if meta:
+                        yesterday = datetime.date(int(a[day-1][0][0:3])+1911, int(a[day-1][0][3:5]), int(a[day-1][0][5:])) + datetime.timedelta(-1)
+                        if yesterday.month < 10:
+                            mon = f'0{yesterday.month}'
                         else:
+                            mon = str(yesterday.month)
+                        yesterday = f'{int(yesterday.year)-1911}{mon}{yesterday.day}'
+                        if meta[:7] == yesterday:
+                            yStuff = meta.split('; ')[1]
                             break
-            except FileNotFoundError:
-                print('關於車輛保養的參考文件缺失')
+            else:
+                yStuff = a[day-2][1]
         carKeeper = []
-        if '2' in yStuff or data[day][2] == '' or data[day][2] == '宿':
+        if '2' in yStuff or data[day][2] == '' or re.match(r'(宿|v)', data[day][2], re.IGNORECASE):
             carKeeper.append('2')
-        if '3' in yStuff or data[day][3] == '' or data[day][3] == '宿':
+        if '3' in yStuff or data[day][3] == '' or re.match(r'(宿|v)', data[day][3], re.IGNORECASE):
             carKeeper.append('3')
-        if '4' in yStuff or data[day][4] == '' or data[day][4] == '宿':
+        if '4' in yStuff or data[day][4] == '' or re.match(r'(宿|v)', data[day][4], re.IGNORECASE):
             carKeeper.append('4')  
         if '2' in carKeeper: # 91/72車
-            ambu = '91/72車(2)'
+            ambu = '91/42車(2)'
         elif '2' not in carKeeper and '3' not in carKeeper:
-            ambu = '91/72車(4)'
+            ambu = '91/42車(4)'
         elif '2' not in carKeeper:
-            ambu = '91/72車(3)'
+            ambu = '91/42車(3)'
         if '3' in carKeeper: # 11車
             ft11 = '11車(3)'
         elif '3' not in carKeeper and '4' not in carKeeper:
