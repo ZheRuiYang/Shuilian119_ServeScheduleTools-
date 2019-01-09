@@ -34,6 +34,14 @@ def schedulizer():
                 print('可以繼續輸入。(輸入「\ok」開始行程；「\help」以查閱使用說明；「\?」以檢視人員清單；「\dele」以刪除已輸入的行程；「\sche」以檢視行程清單)')
         elif re.match(r'(\\|/)ok', _command, re.IGNORECASE):
             if len(mList):
+                with shelve.open(dataPath) as _id:
+                    for i in mList:
+                        _co = i.split(',')[0]
+                        if not _co in _id:
+                            print(f'資料庫裡沒{_co}這個代號。')
+                            print('可以繼續輸入。(輸入「\ok」開始行程；「\help」以查閱使用說明；「\?」以檢視人員清單；「\dele」以刪除已輸入的行程；「\sche」以檢視行程清單)')
+                            print('')
+                            break
                 _theChoosen = ';'.join(mList)
                 os.system(f'{scrPa} {_theChoosen}')
                 break
