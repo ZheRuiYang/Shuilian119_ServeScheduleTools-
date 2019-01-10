@@ -1,7 +1,7 @@
 #! python3
 # Batch make serve schdule for a whole month.  
 
-import os, zipfile, re, datetime, shutil, codecs
+import os, zipfile, re, datetime, shutil, codecs, send2trash
 import xml.etree.ElementTree as ET
 
 def xmlSetup(tree):
@@ -820,7 +820,7 @@ def dateName(day, stuff, SMS, Cien=None): # Cien = 慈恩
     day = day + number + wkDay[date.weekday()]
     return day
 
-def questAccepted(data):
+def questAccepted(data, tempPath):
     desk = os.path.join(os.environ['USERPROFILE'], 'Desktop')
     SS = os.path.join(desk, f'{data[0][:3]}年{data[0][3:5]}月份勤務表')
     temp = os.path.join(SS, 'temp')
@@ -832,7 +832,7 @@ def questAccepted(data):
     except FileExistsError:
         os.chdir(SS)
         
-    with zipfile.ZipFile(r"C:\Users\Sleepylizard\Desktop\SSMaker\SSTemplate.docx") as docu: # path here is for temporary.###################################
+    with zipfile.ZipFile(tempPath) as docu:
         tree = ET.parse(docu.open('word/document.xml'))
         os.mkdir("temp")
         docu.extractall(temp)
@@ -885,9 +885,9 @@ def questAccepted(data):
     archive(date, temp, namePs)
     shutil.rmtree(temp)
 
-def dataFetcher():
+def dataFetcher(_turn, _train):
     # from .xlsx(輪休預定表)
-    with zipfile.ZipFile(r'C:\Users\Sleepylizard\Desktop\輪休預定表108.01(4+4).xlsx') as xlsx: # path here is for temporily########################################
+    with zipfile.ZipFile(_turn) as xlsx:
         si = [ele for eve, ele in ET.iterparse(xlsx.open('xl/sharedStrings.xml')) if ele.tag == '{http://schemas.openxmlformats.org/spreadsheetml/2006/main}si']
         labeledStrings = {} # {label_number:string}
         for i in range(len(si)):
@@ -912,7 +912,7 @@ def dataFetcher():
         del cell['D16']
                 
     # from .docx(訓練預定表)
-    with zipfile.ZipFile(r'C:\Users\Sleepylizard\Desktop\水璉分隊訓練預定表108.01.docx') as docx: # path here is for temporily###################################
+    with zipfile.ZipFile(_train) as docx:
         wTrs = [elem for event, elem in ET.iterparse(docx.open('word/document.xml')) if elem.tag == '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}tr']
         train = {} # {日期(1~31):['日期', '星期', '時段', '科目', '地點', '備註']}
         for i in range(2, len(wTrs)):
@@ -983,7 +983,7 @@ def dataFetcher():
         del data[31]
     return data
 
-def dataExplainer(data):
+def dataExplainer(data, metaPath):
     a = [] # first data reassemble target: ['date', 'stuff', 'night', 'SMS', '輪休', '外宿', '補休', '休假', '公差假', '事病假', 'PS', ...]
     for day in data.keys():
         jar = {'stuff': [], 'night': [], 'SMS': [], 'tl': [], 'ol': [], 'cl': [], 'le': [], 'bl': [], 'pl': [], 'allDay':[]}
@@ -1110,7 +1110,7 @@ def dataExplainer(data):
             goString = f'{goString}        '
         a[day-1].append(goString)
         # 車輛保養
-        with open(r'C:\Users\Sleepylizard\Desktop\SSMaker\metadata.txt') as ref: # path...#############################################
+        with open(metaPath) as ref:
             if a[day-1][0][5:] == '01':
                 while True:
                     meta = ref.readline()
@@ -1186,9 +1186,41 @@ def dataExplainer(data):
         output.append(tBox)
     return output
 
-if __name__ == '__main__':
-    with open(r'C:\Users\Sleepylizard\Desktop\SSMaker\metadata.txt', 'ab') as meta: # path... ################################################
-        for i in dataExplainer(dataFetcher()):
+def toTrashCan(path, target):
+    os.chdir(path)
+    send2trash.send2trash(target)
+
+def main():
+    desktop = os.path.join(os.environ['USERPROFILE'], r'Desktop')
+    dataPath = os.path.join(desktop, r'勤務表資料源')
+    metaPath = os.path.join(os.path.dirname(__file__), r'metadata.txt')
+    tempPath = os.path.join(os.path.dirname(__file__), r'SSTemplate.docx')
+    print('')
+    print('●批量勤務表產生器(整月份)●')
+    print('')
+    print('在桌面建立資料夾：勤務表資料源...', end='')
+    os.makedirs(dataPath, exist_ok=True)
+    print('OK')
+    print('')
+    print('請將當月份：')
+    print('')
+    print('一、輪休預定表')
+    print('二、訓練預定表')
+    print('')
+    print('各複製一份到桌面的資料夾「勤務表資料源」。')
+    os.system('pause >nul | echo 準備完成後按下空白鍵開始產生。')
+    for root, dirs, files in os.walk(dataPath):
+        for file in files:
+            try:
+                turnTable = os.path.join(dataPath, re.search(r'(.*)輪休(.*).xlsx$', file).group())
+            except AttributeError:
+                pass
+            try:
+                trainTable = os.path.join(dataPath, re.search(r'(.*)訓練(.*).docx$', file).group())
+            except AttributeError:
+                continue
+    with open(metaPath, 'ab') as meta:
+        for i in dataExplainer(dataFetcher(turnTable, trainTable), metaPath):
             print(f'製作{i[:3]}年{i[3:5]}月{i[5:7]}日的勤務表......', end='')
             j = codecs.encode(i + '\r\n', encoding='ANSI') # windows line-breaker is "\r\n"
             meta.write(j)
@@ -1196,7 +1228,11 @@ if __name__ == '__main__':
             i = i.split('; ')
             i[4] = i[4].split('|')
             i[6] = i[6].split('|')
-            questAccepted(i)
+            questAccepted(i, tempPath)
             print('完成！')
-    print('本月份勤務表全數製作完成！請務必再次確認。')
+    toTrashCan(desktop, '勤務表資料源')
+    print('本月份勤務表製作完成！請務必再次確認。')
     os.system('pause >nul | echo 按下任何鍵以關閉程式...')
+
+if __name__ == '__main__':
+    main()
