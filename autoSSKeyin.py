@@ -30,7 +30,11 @@ def main():
                     break
     # read SS
     data = [[], [], []] # [[tbl#3][tbl#4][tbl#6]]
-    tbl = docx.Document(os.path.join(filePath, case.group())).tables
+    try:
+        tbl = docx.Document(os.path.join(filePath, case.group())).tables
+    except UnboundLocalError:
+        print(f'Dropbox裡面沒有{dat[:3]}年{dat[3:5]}月{dat[5:]}日的勤務表')
+        os.system('pause >nul')
     for row in tbl[2].rows:
         for cell in row.cells:
             data[0].append(cell.text.replace('\xa0', '\t'))
@@ -79,4 +83,3 @@ def main():
                     
 if __name__ == '__main__':
     main()
-
