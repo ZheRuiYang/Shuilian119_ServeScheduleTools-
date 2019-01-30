@@ -1021,7 +1021,7 @@ def dataExplainer(data, metaPath):
             elif re.match(r'(常訓|T2訓|T2|常|水訓|水)', data[day][i]):
                 jar['ol'].append(str(i))
                 jar['allDay'].append(str(i))
-                outLeave = re.match(r'(常訓|T2訓|T2|常水訓|水)', data[day][i]).group()
+                outLeave = re.match(r'(常訓|T2訓|T2|常|水訓|水)', data[day][i]).group()
                 if not re.search(r'訓', outLeave):
                     outLeave = f'{outLeave}訓'
                 trainName = olList[outLeave]
